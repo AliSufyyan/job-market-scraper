@@ -1,82 +1,56 @@
+import os
+import time
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.common.by import By
-import csv
-import time
 
 
-def start_driver():
+def run_selenium():
+    print("🚀 Starting Selenium for Airbnb...")
 
-    service = Service("msedgedriver.exe")
+    # Path to local Edge driver
+    driver_path = os.path.join(os.path.dirname(__file__), "msedgedriver.exe")
 
+    service = Service(driver_path)
     driver = webdriver.Edge(service=service)
 
-    driver.maximize_window()
-
-    return driver
-def open_page(driver):
-
-    url = "https://boards.greenhouse.io/stripe"
-
+    url = "https://careers.airbnb.com/positions/"
     driver.get(url)
 
-    time.sleep(5)
+    time.sleep(5)  # wait for page load
 
+    # Scroll to load dynamic jobs
+    print("Scrolling to load dynamic content...")
+    for _ in range(3):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
 
-def collect_links(driver):
-
-    job_links = []
-
+    # Extract job links
+    links = []
     elements = driver.find_elements(By.TAG_NAME, "a")
 
-    for element in elements:
+    for el in elements:
+        href = el.get_attribute("href")
+        text = el.text.lower()
 
-        href = element.get_attribute("href")
+        if href and "/positions/" in href and any(i.isdigit() for i in href):
+            if any(role in text for role in ["engineer", "data", "intern", "analyst"]):
+                links.append(href)
 
-        if href and "jobs" in href:
+    filtered_links = list(set(links))
 
-            job_links.append(href)
+    # Create folder if not exists
+    os.makedirs("../data/raw", exist_ok=True)
 
-    unique_links = list(set(job_links))
+    # Save CSV
+    df = pd.DataFrame(filtered_links, columns=["Job URL"])
+    df.to_csv("../data/raw/job_links.csv", index=False)
 
-    return unique_links
-
-
-import os
-
-def save_links(links):
-
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    file_path = os.path.join(base_dir, "data", "raw", "job_links.csv")
-
-    with open(file_path, "w", newline="", encoding="utf-8") as f:
-
-        writer = csv.writer(f)
-
-        writer.writerow(["url"])
-
-        for link in links:
-            writer.writerow([link])
-
-    print("File saved at:", file_path)
-
-
-def main():
-
-    driver = start_driver()
-
-    open_page(driver)
-
-    links = collect_links(driver)
-
-    print("Total links:",len(links))
-
-    save_links(links)
+    print(f"✅ Success! Saved {len(filtered_links)} links to data/raw/job_links.csv")
 
     driver.quit()
 
 
 if __name__ == "__main__":
-
-    main()
+    run_selenium()
