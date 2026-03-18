@@ -1,4 +1,5 @@
 import scrapy
+import os
 from scrapy_project.items import JobItem
 
 
@@ -11,7 +12,10 @@ class JobSpider(scrapy.Spider):
 
         import csv
 
-        links_file = "../../data/raw/job_links.csv"
+        # Construct absolute path to job_links.csv
+        spider_dir = os.path.dirname(os.path.abspath(__file__))
+        job_market_dir = os.path.dirname(os.path.dirname(os.path.dirname(spider_dir)))
+        links_file = os.path.join(job_market_dir, "data", "raw", "job_links.csv")
 
         with open(links_file, newline="", encoding="utf-8") as f:
 
